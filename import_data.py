@@ -76,14 +76,19 @@ N = 1 # batch size
 dataloader = DataLoader(dataset, N, shuffle=True)
 
 
-i = 0
-for [data_input, target] in dataloader:
-    optimizer.zero_grad()
-    output = NN(data_input)
-    # criterion = nn.MSELoss()
-    # loss = criterion(output, target[i])
-    # loss.backward()
-    # optimizer.step()
-    # i += 1
+# i = 0
+# for [data_input, target] in dataloader:
+#     optimizer.zero_grad()
+#     output = NN(data_input)
+#     # criterion = nn.MSELoss()
+#     # loss = criterion(output, target[i])
+#     # loss.backward()
+#     # optimizer.step()
+#     # i += 1
+#
+#     print(data_input.shape)
 
-    print(data_input.shape)
+test = torch.randn(1,40, 1)
+NN(test)
+print(test)
+print(test.shape)

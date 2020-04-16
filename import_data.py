@@ -3,12 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-import torchvision
 import pandas as pd
 import numpy as np
-import csv
-import astroquery
 import requests
+import matplotlib.pyplot as plt
 
 
 def import_data():
@@ -26,37 +24,46 @@ def import_data():
 
 
 cumulative_data = pd.read_csv('cumulative.csv', sep=" ", delimiter=',')
-learning_data_df = pd.read_csv('cumulative.csv', sep=" ", delimiter=',', usecols=(7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+learning_data_df = pd.read_csv('cumulative.csv', sep=" ", delimiter=',', usecols=(6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
                                                                                   17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
                                                                                   27, 28, 29, 32, 33, 34, 35, 36, 38,
                                                                                   39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
                                                                                   49))
-target = cumulative_data['koi_score']
-tensor_output = torch.tensor(target.values.astype(np.float64))
-tensor_tmp = learning_data_df.values.astype(np.float64)
+
+learning_data_df = learning_data_df.dropna()
+target = learning_data_df['koi_score']
+tensor_output = torch.tensor(target.values.astype(np.float))
+
+learning_data_df = learning_data_df.drop(columns=['koi_score'])
+tensor_tmp = learning_data_df.values.astype(np.float)
 tensor_input = torch.from_numpy(tensor_tmp)
 
 
 class Net(nn.Module):
     def __init__(self):
-
         D_in = 40  # D_in dimensions in
-        H = 20      # H hidden dimensions
+        H1 = 100      # H hidden dimensions
+        H2 = 50
         D_out = 1   # D_out dimensions out
 
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(D_in, H, 1)
-        self.fc2 = nn.Linear(H, D_out, 1)
+        self.fc1 = nn.Linear(D_in, H1, 1)
+        self.fc2 = nn.Linear(H1, H2, 1)
+        self.fc3 = nn.Linear(H2, D_out, 1)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        return F.relu(self.fc2(x))
+        x = torch.sigmoid(self.fc1(x))
+        x = torch.sigmoid(self.fc2(x))
+        x = torch.sigmoid(self.fc3(x))
+        return x
 
 
 class PytorchData(Dataset):
     def __init__(self, input, output):
-        self.input = input
-        self.output = output
+        self.cols = len(input[0, :])
+        self.rows = len(input[:, 0])
+        self.input = self.normalize_data(input.float())
+        self.output = output.float()
 
     def __getitem__(self, index):
         return self.input[index, :], self.output[index]
@@ -64,31 +71,53 @@ class PytorchData(Dataset):
     def __len__(self):
         return len(self.output)
 
+    def normalize_data(self, x):
+        for c in range(self.cols):
+            max_value_col = torch.max(x[:, c])
+            if max_value_col != 0:
+                x[:, c] = (max_value_col - x[:, c]) / max_value_col
+        return x
+
 
 NN = Net()
-optimizer = optim.SGD(NN.parameters(), lr=0.01, momentum=0.9)
+learning_rate = .00005
+momentum = .9
+optimizer = optim.Adam(NN.parameters(), lr=learning_rate)
 
 # DataSet
 dataset = PytorchData(tensor_input, tensor_output)
 
 # Dataloader
-N = 1 # batch size
+N = 100  # batch size
 dataloader = DataLoader(dataset, N, shuffle=True)
 
 
-# i = 0
-# for [data_input, target] in dataloader:
-#     optimizer.zero_grad()
-#     output = NN(data_input)
-#     # criterion = nn.MSELoss()
-#     # loss = criterion(output, target[i])
-#     # loss.backward()
-#     # optimizer.step()
-#     # i += 1
-#
-#     print(data_input.shape)
+criterion = nn.MSELoss(reduction='sum')
+iterations = 500
+plot_loss = np.zeros(iterations)
 
-test = torch.randn(1,40, 1)
-NN(test)
-print(test)
-print(test.shape)
+
+for k in range(iterations):
+    total_loss = 0
+    for [x_in, y] in dataloader:
+        for data_input, target in zip(x_in, y):
+            output = NN(data_input)
+            # print(target)
+            loss = criterion(output, target)
+            # print(loss)
+            total_loss += loss.item()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+    plot_loss[k] = total_loss
+    print(k)
+
+
+plt.figure(1)
+t = range(iterations)
+plt.plot(t, plot_loss)
+plt.xlabel('t')
+plt.ylabel('loss')
+plt.title('loss vs iterations')
+plt.show()
+

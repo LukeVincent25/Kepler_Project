@@ -8,6 +8,7 @@ import requests
 import matplotlib.pyplot as plt
 
 
+
 def import_data():
     base_url = "https://exoplanetarchive.ipac.caltech.edu/cgi-bin/nstedAPI/nph-nstedAPI?"
     table_name = "cumulative"

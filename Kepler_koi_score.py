@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
@@ -24,7 +23,7 @@ def import_data():
 
 
 cumulative_data = pd.read_csv('cumulative.csv', sep=" ", delimiter=',')
-learning_data_df = pd.read_csv('cumulative.csv', sep=" ", delimiter=',', usecols=(6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+learning_data_df = pd.read_csv('cumulative.csv', sep=" ", delimiter=',', usecols=(4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
                                                                                   17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
                                                                                   27, 28, 29, 32, 33, 34, 35, 36, 38,
                                                                                   39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
@@ -32,9 +31,11 @@ learning_data_df = pd.read_csv('cumulative.csv', sep=" ", delimiter=',', usecols
 
 learning_data_df = learning_data_df.dropna()
 target = learning_data_df['koi_score']
+labels = learning_data_df['koi_disposition']
 tensor_output = torch.tensor(target.values.astype(np.float))
 
-learning_data_df = learning_data_df.drop(columns=['koi_score'])
+
+learning_data_df = learning_data_df.drop(columns=['koi_score', 'koi_disposition'])
 tensor_tmp = learning_data_df.values.astype(np.float)
 tensor_input = torch.from_numpy(tensor_tmp)
 
@@ -81,7 +82,6 @@ class PytorchData(Dataset):
 
 NN = Net()
 learning_rate = .00005
-momentum = .9
 optimizer = optim.Adam(NN.parameters(), lr=learning_rate)
 
 # DataSet
@@ -93,7 +93,7 @@ dataloader = DataLoader(dataset, N, shuffle=True)
 
 
 criterion = nn.MSELoss(reduction='sum')
-iterations = 500
+iterations = 20
 plot_loss = np.zeros(iterations)
 
 
@@ -102,13 +102,12 @@ for k in range(iterations):
     for [x_in, y] in dataloader:
         for data_input, target in zip(x_in, y):
             output = NN(data_input)
-            # print(target)
             loss = criterion(output, target)
-            # print(loss)
             total_loss += loss.item()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
     plot_loss[k] = total_loss
     print(k)
 

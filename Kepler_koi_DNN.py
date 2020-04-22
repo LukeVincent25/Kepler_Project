@@ -59,19 +59,25 @@ tensor_input = torch.from_numpy(tensor_tmp)
 class Net(nn.Module):
     def __init__(self):
         D_in = 40  # D_in dimensions in
-        H1 = 100      # H hidden dimensions
-        H2 = 50
+        H1 = 70      # H hidden dimensions
+        H2 = 100
+        H3 = 70
+        H4 = 40
         D_out = 1   # D_out dimensions out
 
         super(Net, self).__init__()
         self.fc1 = nn.Linear(D_in, H1, 1)
         self.fc2 = nn.Linear(H1, H2, 1)
-        self.fc3 = nn.Linear(H2, D_out, 1)
+        self.fc3 = nn.Linear(H2, H3, 1)
+        self.fc4 = nn.Linear(H3, H4, 1)
+        self.fc5 = nn.Linear(H4, D_out, 1)
 
     def forward(self, x):
         x = torch.sigmoid(self.fc1(x))
         x = torch.sigmoid(self.fc2(x))
         x = torch.sigmoid(self.fc3(x))
+        x = torch.sigmoid(self.fc4(x))
+        x = torch.sigmoid(self.fc5(x))
         return x
 
 
@@ -99,7 +105,7 @@ class PytorchData(Dataset):
 # Initiate NN Module and select directory to save
 NN = Net()
 MODEL_DIR = "models/"
-MODEL_NAME = "koi_disposition_split_SGD"
+MODEL_NAME = "koi_disposition_DNN_adam"
 extension = ".pth"
 
 
@@ -137,8 +143,8 @@ if learning:
     criterion = nn.MSELoss(reduction='sum')
 
     # Initiate Optimizer
-    learning_rate = .0001
-    optimizer = optim.SGD(NN.parameters(), lr=learning_rate)
+    learning_rate = .00001
+    optimizer = optim.Adam(NN.parameters(), lr=learning_rate)
 
     # Iterations
     iterations = 250
